@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zsh \
     fzf \
     jq \
+    tmux \
     xz-utils \
     # Firewall and networking tools
     iptables \
@@ -101,6 +102,11 @@ RUN mkdir -p /workspace && chown vscode:vscode /workspace
 # Switch to vscode user for remaining installs
 USER vscode
 WORKDIR /home/vscode
+
+# Configure tmux for truecolor and zsh
+RUN echo 'set -g default-terminal "tmux-256color"' > ~/.tmux.conf \
+    && echo 'set -ag terminal-overrides ",xterm*:Tc"' >> ~/.tmux.conf \
+    && echo 'set -g default-shell /bin/zsh' >> ~/.tmux.conf
 
 # Install zsh-in-docker (must run as vscode so config goes to /home/vscode)
 RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/download/v1.2.1/zsh-in-docker.sh)" -- \

@@ -23,7 +23,7 @@
     "COLORTERM": "truecolor"
   },
 
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && tmux new-session -d -s main",
   "waitFor": "postStartCommand",
 
   "customizations": {
