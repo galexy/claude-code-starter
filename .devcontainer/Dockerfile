@@ -20,8 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zsh \
     fzf \
     jq \
-    nano \
-    vim \
+    xz-utils \
     # Firewall and networking tools
     iptables \
     ipset \
@@ -59,6 +58,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
 
 # Add vscode user to docker group for socket access
 RUN groupadd -f docker && usermod -aG docker vscode
+
+# Install Helix editor from GitHub releases
+RUN ARCH=$(dpkg --print-architecture) \
+    && HELIX_VERSION="25.01.1" \
+    && case "$ARCH" in \
+        amd64) HELIX_ARCH="x86_64" ;; \
+        arm64) HELIX_ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac \
+    && curl -fsSL "https://github.com/helix-editor/helix/releases/download/${HELIX_VERSION}/helix-${HELIX_VERSION}-${HELIX_ARCH}-linux.tar.xz" \
+        -o /tmp/helix.tar.xz \
+    && tar -xf /tmp/helix.tar.xz -C /opt \
+    && mv /opt/helix-${HELIX_VERSION}-${HELIX_ARCH}-linux /opt/helix \
+    && ln -s /opt/helix/hx /usr/local/bin/hx \
+    && rm /tmp/helix.tar.xz
+ENV HELIX_RUNTIME=/opt/helix/runtime
 
 # Install git-delta for enhanced diffs
 RUN ARCH=$(dpkg --print-architecture) \

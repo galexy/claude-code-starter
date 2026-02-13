@@ -17,7 +17,10 @@
   ],
 
   "containerEnv": {
-    "CLAUDE_CONFIG_DIR": "/workspace/.claude"
+    "CLAUDE_CONFIG_DIR": "/workspace/.claude",
+    "EDITOR": "hx",
+    "VISUAL": "hx",
+    "COLORTERM": "truecolor"
   },
 
   "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
