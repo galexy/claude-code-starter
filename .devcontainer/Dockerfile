@@ -68,11 +68,12 @@ RUN ARCH=$(dpkg --print-architecture) \
     && dpkg -i /tmp/git-delta.deb \
     && rm /tmp/git-delta.deb
 
-# Install zsh-in-docker
-RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/download/v1.2.1/zsh-in-docker.sh)" -- \
-    -t robbyrussell \
-    -p git \
-    -p fzf
+# Fetch fzf zsh integration scripts (not shipped in Debian bookworm's fzf package)
+RUN mkdir -p /usr/share/doc/fzf/examples \
+    && curl -fsSL https://raw.githubusercontent.com/junegunn/fzf/0.38.0/shell/key-bindings.zsh \
+        -o /usr/share/doc/fzf/examples/key-bindings.zsh \
+    && curl -fsSL https://raw.githubusercontent.com/junegunn/fzf/0.38.0/shell/completion.zsh \
+        -o /usr/share/doc/fzf/examples/completion.zsh
 
 # Allow firewall script to run without password
 COPY init-firewall.sh /usr/local/bin/init-firewall.sh
@@ -82,9 +83,17 @@ RUN chmod +x /usr/local/bin/init-firewall.sh \
 # Create workspace directory
 RUN mkdir -p /workspace && chown vscode:vscode /workspace
 
-# Switch to vscode user for Claude Code installation
+# Switch to vscode user for remaining installs
 USER vscode
 WORKDIR /home/vscode
+
+# Install zsh-in-docker (must run as vscode so config goes to /home/vscode)
+RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/download/v1.2.1/zsh-in-docker.sh)" -- \
+    -p git \
+    -p fzf \
+    -a "source /usr/share/doc/fzf/examples/key-bindings.zsh" \
+    -a "source /usr/share/doc/fzf/examples/completion.zsh" \
+    -x
 
 # Install Claude Code via native installer (places binary in ~/.local/bin)
 RUN curl -fsSL https://claude.ai/install.sh | bash
