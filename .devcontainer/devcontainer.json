@@ -13,16 +13,20 @@
 
   "mounts": [
     "source=claude-code-starter-bashhistory,target=/home/vscode/.bash_history,type=volume",
-    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+    "source=${env:HOST_SSH_AUTH_SOCK},target=/ssh-agent,type=bind",
+    "source=${env:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
   ],
 
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/workspace/.claude",
     "EDITOR": "hx",
     "VISUAL": "hx",
-    "COLORTERM": "truecolor"
-  },
+    "COLORTERM": "truecolor",
+    "SSH_AUTH_SOCK": "/ssh-agent",  
+    "BEADS_DIR": "/workspace/.beads"
+   },
 
+  "postCreateCommand": "sudo chmod 777 /ssh-agent",
   "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && tmux new-session -d -s main",
   "waitFor": "postStartCommand",
 
@@ -40,5 +44,6 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode"
       }
     }
-  }
+  },
+  "runArgs": ["--add-host=host.docker.internal:host-gateway"]
 }

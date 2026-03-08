@@ -20,7 +20,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zsh \
     fzf \
     jq \
+    less \
+    man-db \
+    procps \
     tmux \
+    unzip \
     xz-utils \
     # Firewall and networking tools
     iptables \
@@ -30,6 +34,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     aggregate \
     # Needed for zsh-in-docker and general use
     locales \
+    openssh-client \
+    socat \
     && rm -rf /var/lib/apt/lists/*
 
 # Generate locale
@@ -75,6 +81,8 @@ RUN ARCH=$(dpkg --print-architecture) \
     && ln -s /opt/helix/hx /usr/local/bin/hx \
     && rm /tmp/helix.tar.xz
 ENV HELIX_RUNTIME=/opt/helix/runtime
+ENV SHELL=/bin/zsh
+ENV DEVCONTAINER=true
 
 # Install git-delta for enhanced diffs
 RUN ARCH=$(dpkg --print-architecture) \
@@ -91,7 +99,22 @@ RUN mkdir -p /usr/share/doc/fzf/examples \
     && curl -fsSL https://raw.githubusercontent.com/junegunn/fzf/0.38.0/shell/completion.zsh \
         -o /usr/share/doc/fzf/examples/completion.zsh
 
+# Install Node.js LTS (v22.x) from NodeSource, enable corepack for pnpm
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable
+
+# Install dolt
+RUN curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | bash
+
+# Install beads (bd) issue tracker
+RUN npm install -g @beads/bd
+
 # Allow firewall script to run without password
+COPY xdg-open /usr/local/bin/xdg-open
+RUN chmod +x /usr/local/bin/xdg-open
+
 COPY init-firewall.sh /usr/local/bin/init-firewall.sh
 RUN chmod +x /usr/local/bin/init-firewall.sh \
     && echo "vscode ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers.d/vscode
@@ -103,10 +126,13 @@ RUN mkdir -p /workspace && chown vscode:vscode /workspace
 USER vscode
 WORKDIR /home/vscode
 
-# Configure tmux for truecolor and zsh
+# Configure tmux for truecolor and zsh, with context window bar
 RUN echo 'set -g default-terminal "tmux-256color"' > ~/.tmux.conf \
     && echo 'set -ag terminal-overrides ",xterm*:Tc"' >> ~/.tmux.conf \
-    && echo 'set -g default-shell /bin/zsh' >> ~/.tmux.conf
+    && echo 'set -g default-shell /bin/zsh' >> ~/.tmux.conf \
+    && echo 'set -g status-right-length 60' >> ~/.tmux.conf \
+    && echo 'set -g status-right "#(python3 /workspace/.claude/scripts/claude-context-bar.py --tmux) %H:%M"' >> ~/.tmux.conf \
+    && echo 'set -g status-interval 10' >> ~/.tmux.conf
 
 # Install zsh-in-docker (must run as vscode so config goes to /home/vscode)
 RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/download/v1.2.1/zsh-in-docker.sh)" -- \
@@ -116,10 +142,16 @@ RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/downloa
     -a "source /usr/share/doc/fzf/examples/completion.zsh" \
     -x
 
+# Install uv (Python package manager)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # Install Claude Code via native installer (places binary in ~/.local/bin)
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # Ensure ~/.local/bin is on PATH
 ENV PATH="/home/vscode/.local/bin:${PATH}"
+
+# Create .ssh directory
+RUN mkdir /workspace/.ssh
 
 WORKDIR /workspace

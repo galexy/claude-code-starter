@@ -1,0 +1,16 @@
+#!/bin/sh
+# xdg-open shim: forward URLs through SSH reverse tunnel to macOS
+set -eu
+PORT="${OPEN_LOCAL_PORT:-19999}"
+# host.docker.internal works on OrbStack and Docker Desktop
+# Fall back to 172.17.0.1 for vanilla Linux Docker
+HOST="${OPEN_LOCAL_HOST:-host.docker.internal}"
+
+if socat -u - "TCP:${HOST}:${PORT},connect-timeout=2" </dev/null >/dev/null 2>&1; then
+  for url in "$@"; do
+    printf '%s\0' "$url"
+  done | socat - "TCP:${HOST}:${PORT},connect-timeout=3"
+else
+  echo "xdg-open: tunnel not reachable at ${HOST}:${PORT}" >&2
+  exit 1
+fi
